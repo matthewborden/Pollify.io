@@ -3,23 +3,19 @@
  * Module dependencies.
  */
 
-var express = require('express')
-  , routes = require('./routes')
-  , user = require('./routes/user')
-  , http = require('http')
-  , path = require('path'),
-  couchdb = require('felix-couchdb'),
-  client = couchdb.createClient(5984, 'localhost'),
-  crypto = require('crypto'),
-  userlist = client.db('userslist'),
+var express  = require('express')
+  , routes   = require('./routes')
+  , user     = require('./routes/user')
+  , http     = require('http')
+  , path     = require('path'),
+  couchdb    = require('felix-couchdb'),
+  client     = couchdb.createClient(5984, 'localhost'),
+  crypto     = require('crypto'),
+  userlist   = client.db('userslist'),
   shortlinks = client.db('shortlinks');
   
 
 var app = express();
-app.post('/setUser', setUser);
-app.post('/newQuestion', setQuestion);
-app.post('/setAnswer', setAnswer);
-app.get('/getQuestion/:shortlink', getQuestion);
 
 app.configure(function(){
   app.set('port', process.env.PORT || 8080);
@@ -41,6 +37,11 @@ http.createServer(app).listen(app.get('port'), function(){
   console.log("Express server listening on port " + app.get('port'));
 });
 
+app.post('/api/setUser', setUser);
+app.post('/api/newQuestion', setQuestion);
+app.post('/api/setAnswer', setAnswer);
+app.post('/api/getQuestion', getQuestion);
+app.post('/api/getUser', getUser);
 
 function setUser(req,res) {
 	userlist.saveDoc(req.body.user, {}, function sendOk(er, ok) {
@@ -48,11 +49,17 @@ function setUser(req,res) {
 	});
 }
 function getUser (req,res) {
+	console.log(req.body);
 	userlist.getDoc(req.body.user, function(er, doc) {
-		for(var i = 0; i < doc)
+		var questions = [];
+		for (var question in doc) {
+			if (!doc[ question ][ "state" ] && typeof doc[ question ] === 'object') questions.push(doc[question]);
+		}
+		
+		res.send(JSON.stringify(questions));
+		
 	});
 	
-	res.render('new', );
 }
 function setAnswer(req,res) {
 	
@@ -78,9 +85,9 @@ function setAnswer(req,res) {
 
 function setQuestion(req,res) {
 	shortlinks.saveDoc(req.body.shortlink, {
-		author:req.body.user, 
-		title:req.body.question, 							
-		type:req.body.type 
+		author : req.body.user, 
+		title  : req.body.question, 							
+		type   : req.body.type
 	}, function sendOk(er, ok) {
 	
 	});
@@ -91,8 +98,8 @@ function setQuestion(req,res) {
 			answers = [];
 			req.body.choices.forEach(function(item) { 
 				answers.push({
-					count: 0,
-					name: item
+					count : 0,
+					name  : item
 				});
 			});
 		} else {
@@ -100,10 +107,13 @@ function setQuestion(req,res) {
 		}
 		
 		doc[hash] = {
-			answers:answers,
-			type:req.body.type,
-			name:req.body.question
+			answers   :  answers,
+			type      :  req.body.type,
+			name      :  req.body.question,
+			state     :  false,
+			shortlink :  req.body.shortlink
 		};
+		
 		userlist.saveDoc(req.body.user, doc, function sendOk(er, ok) {
 			res.send(JSON.stringify(ok));
 		});
@@ -111,11 +121,11 @@ function setQuestion(req,res) {
 }
 
 function getQuestion(req,res) {
-	shortlinks.getDoc(req.param('shortlink'), function sendOk(er, shortdoc) {
+	shortlinks.getDoc(req.body.shortlink, function sendOk(er, shortdoc) {
 		if (er) return res.send(404);
 		var hash = crypto.createHash('md5').update(shortdoc.title).digest("hex");
 		userlist.getDoc(shortdoc.author, function(er, doc) {
-			res.render('index', doc[hash]);
+			res.send(JSON.stringify(doc[hash]));
 		});
 	});
 }

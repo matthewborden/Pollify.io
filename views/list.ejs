@@ -63,22 +63,38 @@
 					
 				</div>
 			</div>
-			<div class = "row">
-				<% for(i = 0; i < questions.length; i++){ %>
-					<div class="span12">
-						<a href=""><span><%= answers[i].name %></span></a>
-					</div>
-				<% } %>
-			</div>
-<script src="/javascripts/jquery.js" type="text/javascript"></script>
-<script src="http://freewpresources.com/diggity/wp-content/themes/diggity/js/jquery.mosaic.1.0.1.min.js?ver=3.5" type="text/javascript"></script>
-<script src="/javascripts/modal.js">
+			<table class="table table-hover">
+			              <thead>
+			                <tr>
+		                  		<th>Question</th>
+		                  	  	<th>Responses</th>
+							</tr>
+			              </thead>
+			              <tbody>
+			              </tbody>
+			            </table>
+			<script src="/javascripts/jquery.js" type="text/javascript"></script>
+			<script src="https://raw.github.com/jinksys/Javascript-Cookie-Manager/master/CookieManager.js" type="text/javascript"></script>
+			<script src="http://freewpresources.com/diggity/wp-content/themes/diggity/js/jquery.mosaic.1.0.1.min.js?ver=3.5" type="text/javascript"></script>
+			<script src="/javascripts/modal.js">
 			<script>
-			$(document).ready(function() {
-				$('#myModal').modal({
-				  keyboard: true
-				})
-			  });
+				$(document).ready(function() {
+					$('#myModal').modal({
+					  keyboard: true
+					})
+			 		CookieManager.setValue("username","matthewborden");
+					$.ajax({
+					  url: 'api/getQuestion',
+					  data: CookieManager.getValue("username"),
+					  success: function (data) {
+							for (var question in questions) { 
+								$('table tbody').append('<tr> <td><a href="' + question.shortlink + '"><span>' + question.name + '</span></a></td><td>' +  question.answers.length +'</td></tr>');
+							}
+					  },
+					  dataType: 'json'
+					}); 
+				
+				});
 			</script>
 		</div>
 	</body>
